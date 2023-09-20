@@ -1,0 +1,212 @@
+{
+  "category": "Flow Rate Meter",
+  "predefined": true,
+  "devices": [
+    {
+      "id": 1301,
+      "name": "20mA Flow Rate Meter",
+      "deviceClass": "GenericDeviceBase",
+      "module": "./genericDevices",
+      "_deviceClass": "Meter",
+      "convertValue": "device.values.gpm = parseFloat(Math.max(0, (((device.values.current - 4) / 16) * (device.options.maxFlow - device.options.minflow))).toFixed(2));",
+      "input": "mA",
+      "inputs": [
+        {
+          "name": "current",
+          "desc": "Current",
+          "dataType": "number"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GPM",
+          "desc": "Flow rate in the reported units",
+          "maxSamples": 50
+        },
+        {
+          "name": "all",
+          "desc": "All values",
+          "maxSamples": 50
+        }
+      ],
+      "options": [
+        {
+          "dataType": "panel",
+          "field": {
+            "type": "div",
+            "style": {
+              "display": "inline-block"
+            }
+          },
+          "options": [
+            {
+              "bind": "options.name",
+              "dataType": "string",
+              "default": "",
+              "field": {
+                "type": "inputField",
+                "required": false,
+                "bind": "options.name",
+                "labelText": "Name",
+                "inputAttrs": {
+                  "maxLength": 16,
+                  "style": {
+                    "width": "16rem"
+                  }
+                },
+                "style": {
+                  "display": "block"
+                }
+              }
+            },
+            {
+              "dataType": "boolean",
+              "default": true,
+              "field": {
+                "type": "checkbox",
+                "bind": "isActive",
+                "labelText": "Is Active"
+              }
+            },
+            {
+              "dataType": "panel",
+              "field": {
+                "type": "fieldset",
+                "legend": "Readings",
+                "cssClass": "genericReadingValues",
+                "style": {
+                  "display": "block",
+                  "verticalAlign": "top"
+                }
+              },
+              "options": [
+                {
+                  "field": {
+                    "type": "staticField",
+                    "labelText": "GPM",
+                    "binding": "values.gpm",
+                    "dataType": "number",
+                    "fmtMask": "#,##0.0###",
+                    "emptyMask": "--.-",
+                    "style": {
+                      "display": "block",
+                      "fontSize": ".8rem",
+                      "lineHeight": "1.2"
+                    },
+                    "units": "gpm",
+                    "labelAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    }
+                  }
+                },
+                {
+                  "field": {
+                    "type": "staticField",
+                    "labelText": "Current",
+                    "binding": "values.current",
+                    "dataType": "number",
+                    "fmtMask": "#,##0.0###",
+                    "emptyMask": "--.-",
+                    "style": {
+                      "display": "block",
+                      "fontSize": ".8rem",
+                      "lineHeight": "1.2"
+                    },
+                    "units": "mA",
+                    "labelAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "field": {
+            "type": "div",
+            "style": {
+              "display": "inline-block",
+              "verticalAlign": "top",
+              "marginLeft": ".5rem"
+            }
+          },
+          "options": [
+            {
+              "field": {
+                "type": "fieldset",
+                "legend": "Settings"
+              },
+              "options": [
+                {
+                  "field": {
+                    "type": "div",
+                    "style": {
+                      "display": "block"
+                    }
+                  },
+                  "options": [
+                    {
+                      "bind": "options.maxFlow",
+                      "dataType": "number",
+                      "default": 110,
+                      "field": {
+                        "type": "valueSpinner",
+                        "bind": "options.maxFlow",
+                        "labelText": "Max Flow Rate",
+                        "units": "gpm",
+                        "required": true,
+                        "canEdit": true,
+                        "labelAttrs": {
+                          "style": {
+                            "padding-right": ".25rem"
+                          }
+                        },
+                        "min": 10,
+                        "max": 10000,
+                        "step": 0.1,
+                        "style": {
+                          "display": "block"
+                        }
+                      }
+                    },
+                    {
+                      "bind": "options.minflow",
+                      "dataType": "number",
+                      "default": 0,
+                      "field": {
+                        "bind": "options.psiPerVolt",
+                        "type": "valueSpinner",
+                        "labelText": "Min Flow Rate",
+                        "units": "gpm",
+                        "required": true,
+                        "canEdit": true,
+                        "labelAttrs": {
+                          "style": {
+                            "padding-right": ".25rem"
+                          }
+                        },
+                        "min": 0,
+                        "max": 100,
+                        "style": {
+                          "display": "block"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "interfaces": [
+        "generic"
+      ]
+    }
+  ]
+}
