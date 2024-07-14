@@ -988,6 +988,289 @@
       "interfaces": [
         "generic"
       ]
+    },
+    {
+      "id": 203,
+      "name": "20mA Pressure Sensor",
+      "deviceClass": "GenericDeviceBase",
+      "module": "./genericDevices",
+      "_deviceClass": "Transducer",
+      "convertValue": "device.values.psi = parseFloat(Math.max(device.options.minPressure, (device.values.current - 4) * ((device.options.maxPressure - device.options.minPressure) / 16) + device.options.minPressure).toFixed(2));",
+      "input": "mA",
+      "inputs": [
+        {
+          "name": "current",
+          "desc": "Current",
+          "dataType": "number"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "psi",
+          "desc": "Presure in the reported units",
+          "maxSamples": 50
+        },
+        {
+          "name": "all",
+          "desc": "All values",
+          "maxSamples": 50
+        }
+      ],
+      "options": [
+        {
+          "dataType": "panel",
+          "field": {
+            "type": "div",
+            "style": {
+              "display": "inline-block"
+            }
+          },
+          "options": [
+            {
+              "bind": "options.name",
+              "dataType": "string",
+              "default": "",
+              "field": {
+                "type": "inputField",
+                "required": false,
+                "bind": "options.name",
+                "labelText": "Name",
+                "inputAttrs": {
+                  "maxLength": 16,
+                  "style": {
+                    "width": "16rem"
+                  }
+                },
+                "style": {
+                  "display": "block"
+                }
+              }
+            },
+            {
+              "dataType": "boolean",
+              "default": true,
+              "field": {
+                "type": "checkbox",
+                "bind": "isActive",
+                "labelText": "Is Active"
+              }
+            },
+            {
+              "dataType": "panel",
+              "field": {
+                "type": "fieldset",
+                "legend": "Readings",
+                "cssClass": "genericReadingValues",
+                "style": {
+                  "display": "block",
+                  "verticalAlign": "top"
+                }
+              },
+              "options": [
+                {
+                  "field": {
+                    "type": "staticField",
+                    "labelText": "PSI",
+                    "binding": "values.psi",
+                    "dataType": "number",
+                    "fmtMask": "#,##0.0###",
+                    "emptyMask": "--.-",
+                    "style": {
+                      "display": "block",
+                      "fontSize": ".8rem",
+                      "lineHeight": "1.2"
+                    },
+                    "units": "psi",
+                    "labelAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    }
+                  }
+                },
+                {
+                  "field": {
+                    "type": "staticField",
+                    "labelText": "Current",
+                    "binding": "values.current",
+                    "dataType": "number",
+                    "fmtMask": "#,##0.0###",
+                    "emptyMask": "--.-",
+                    "style": {
+                      "display": "block",
+                      "fontSize": ".8rem",
+                      "lineHeight": "1.2"
+                    },
+                    "units": "mA",
+                    "labelAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "field": {
+            "type": "div",
+            "style": {
+              "display": "inline-block",
+              "verticalAlign": "top",
+              "marginLeft": ".5rem"
+            }
+          },
+          "options": [
+            {
+              "field": {
+                "type": "fieldset",
+                "legend": "Settings"
+              },
+              "options": [
+                {
+                  "field": {
+                    "type": "div",
+                    "style": {
+                      "display": "block"
+                    }
+                  },
+                  "options": [
+                    {
+                      "bind": "options.maxPressure",
+                      "dataType": "number",
+                      "default": 145.038,
+                      "field": {
+                        "type": "valueSpinner",
+                        "bind": "options.maxPressure",
+                        "labelText": "Max Pressure",
+                        "units": "psi",
+                        "required": true,
+                        "canEdit": true,
+                        "labelAttrs": {
+                          "style": {
+                            "padding-right": ".25rem"
+                          }
+                        },
+                        "min": 0,
+                        "max": 1000,
+                        "step": 0.1,
+                        "style": {
+                          "display": "block"
+                        }
+                      }
+                    },
+                    {
+                      "bind": "options.minPressure",
+                      "dataType": "number",
+                      "default": -14.5038,
+                      "field": {
+                        "bind": "options.minPressure",
+                        "type": "valueSpinner",
+                        "labelText": "Min Pressure",
+                        "units": "psi",
+                        "required": true,
+                        "canEdit": true,
+                        "labelAttrs": {
+                          "style": {
+                            "padding-right": ".25rem"
+                          }
+                        },
+                        "min": -145.038,
+                        "max": 145.038,
+                        "style": {
+                          "display": "block"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "field": {
+                "type": "fieldset",
+                "legend": "High Pressure Alarm"
+              },
+              "options": [
+                {
+                  "field": {
+                    "type": "div",
+                    "style": {
+                      "width": "15rem"
+                    },
+                    "html": "These settings will trigger the alarm pin when the pressure is exceeded.  This trigger will not be identified in the REM although it could be wired to a GPIO pin to reflect the alarm state.<hr style=\"margin:2px\"></hr>Provide the max pressure as well as the tolerance for when the alarm will reset.",
+                    "cssClass": "script-advanced-instructions"
+                  }
+                },
+                {
+                  "default": 0,
+                  "field": {
+                    "binding": "options.alarm.enable",
+                    "type": "checkbox",
+                    "labelText": "Enable",
+                    "style": {
+                      "display": "block"
+                    }
+                  }
+                },
+                {
+                  "default": 0,
+                  "field": {
+                    "binding": "options.alarm.pressure",
+                    "type": "valueSpinner",
+                    "labelText": "Pressure",
+                    "min": 0,
+                    "max": 1000,
+                    "style": {
+                      "display": "block"
+                    },
+                    "labelAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    },
+                    "inputAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    },
+                    "unitsBinding": "options.alarm.units.name"
+                  }
+                },
+                {
+                  "default": 0,
+                  "field": {
+                    "binding": "options.alarm.tolerance",
+                    "type": "valueSpinner",
+                    "labelText": "Tolerance",
+                    "min": 0,
+                    "max": 1000,
+                    "style": {
+                      "display": "block"
+                    },
+                    "labelAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    },
+                    "inputAttrs": {
+                      "style": {
+                        "width": "5rem"
+                      }
+                    },
+                    "unitsBinding": "options.alarm.units.name"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "interfaces": [
+        "generic"
+      ]
     }
   ]
 }
