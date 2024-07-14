@@ -1150,7 +1150,12 @@
                         "canEdit": true,
                         "labelAttrs": {
                           "style": {
-                            "padding-right": ".25rem"
+                            "width": "6.5rem"
+                          }
+                        },
+                        "inputAttrs": {
+                          "style": {
+                            "width": "5.5rem"
                           }
                         },
                         "min": 0,
@@ -1174,7 +1179,12 @@
                         "canEdit": true,
                         "labelAttrs": {
                           "style": {
-                            "padding-right": ".25rem"
+                            "width": "6.5rem"
+                          }
+                        },
+                        "inputAttrs": {
+                          "style": {
+                            "width": "5.5rem"
                           }
                         },
                         "min": -145.038,
