@@ -10,6 +10,8 @@ import { i2cDeviceBase } from "./I2cBus";
 import { webApp } from "../web/Server";
 import { I2cDevice, DeviceBinding } from "../boards/Controller";
 import { LatchTimers } from "../devices/AnalogDevices";
+import * as fs from 'fs';
+
 export class SequentIO extends i2cDeviceBase {
     protected regs = {
         rs485Settings: 65,
@@ -91,7 +93,8 @@ export class SequentIO extends i2cDeviceBase {
     protected ensureIOChannels(label, type, arr, count) {
         try {
             for (let i = 1; i <= count; i++) {
-                if (typeof arr.find(elem => elem.id === i) === 'undefined') arr.push({ id: i, name: `${label} #${i}`, type: type, enabled: false });
+                let ch = arr.find(elem => elem.id === i);
+                if (typeof ch === 'undefined') arr.push({ id: i, name: `${label} #${i}`, type: type, enabled: false });
             }
             arr.sort((a, b) => { return a.id - b.id });
             arr.length = count;
@@ -120,13 +123,47 @@ export class SequentIO extends i2cDeviceBase {
     public get out0_10(): any[] { return typeof this.outputs.out0_10 === 'undefined' ? this.outputs.out0_10 = [] : this.outputs.out0_10; }
     public get outDrain(): any[] { return typeof this.outputs.outDrain === 'undefined' ? this.outputs.outDrain = [] : this.outputs.outDrain; }
     public get calibration(): any { return typeof this.calibration === 'undefined' ? this.info.calibration = {} : this.info.calibration; }
+    protected async initOutputs(outputs: any[], fn: (ord: number, val: number) => void) {
+        if (typeof fn === 'function') {
+            for (let i = 0; i < outputs.length; i++) {
+                let o = outputs[i];
+                if (o.enabled === true) {
+                    if (typeof o.value === 'number') {
+                        console.log(o);
+                        await fn.apply(this, [o.id, o.value]);
+                    }
+                }
+            }
+        }
+    }
     protected packRS485Port(port): Buffer {
         let buffer = Buffer.from([0, 0, 0, 0, 0]);
-        buffer.writeUInt16LE(port.baud & 0x00FFFF, 0);
-        buffer.writeUInt8((port.baud & 0xFF00000) >> 24, 2);
-        buffer.writeUInt8(((port.stopBits & 0x0F) << 6) + ((port.parity & 0x0F) << 4) + (port.mode & 0xFF), 3);
+        buffer.writeUInt8((port.baud & 0x0000FF), 0);
+        buffer.writeUInt8((port.baud & 0x00FF00) >> 8, 1);
+        buffer.writeUInt8((port.baud & 0x0F0000) >> 16, 2);
+        buffer.writeUInt8((port.mode & 0x0F) | ((port.stopBits & 0x03) << 6) | ((port.parity & 0x03) << 4), 3);
+            //<Buffer 80 25 00 40 01 >
+            //<mode> <baudrate> <stopbits> <parity> <add> 0 9600 1 0 1
+            //<Buffer 80 25 00 41 01>
+            //<mode><baudrate><stopbits><parity><add>1 9600 1 0 1            
+        //buffer.writeUInt8((port.mode & 0x0F) | ((port.parity & 0x03) << 2) | (port.stopBits & 0x03) << 4, 3);
+        //buffer.writeUInt16LE(port.baud & 0x00FFFF, 0);
+        //buffer.writeUInt8((port.baud & 0xFF00000) >> 24, 2);
+        //buffer.writeUInt8(((port.stopBits & 0x0F) << 6) + ((port.parity & 0x0F) << 4) + (port.mode & 0xFF), 3);
         buffer.writeUInt8(port.address, 4);
         return buffer
+    }
+    protected unpackRS485Port(buff: Buffer): { baud: number, mode: number, parity: number, stopBits: number, address: number } {
+        let port = { baud: 0, mode: 0, parity: 0, stopBits: 0, address: 0 };
+        console.log(buff);
+        port.baud = buff.readUInt8(2) << 16 | buff.readUInt8(1) << 8 | buff.readUInt8(0);
+        let bits = buff.readUInt8(3);
+        port.mode = (bits & 0x0F);
+        port.parity = (bits >> 4) & 0x30;
+        port.stopBits = (bits >> 6) & 0x03;
+        port.address = buff.readUInt8(4);
+        console.log(port);
+        return port;
     }
     protected async getRS485Port() {
         try {
@@ -152,12 +189,18 @@ export class SequentIO extends i2cDeviceBase {
             //    unsigned int mbStopB: 2;
             //    unsigned int add: 8;
             //} ModbusSetingsType;
-            this.rs485.baud = ret.buffer.readUInt16LE(0) + (ret.buffer.readUInt8(2) << 24);
-            let byte = ret.buffer.readUInt8(3);
-            this.rs485.mode = byte & 0x0F;
-            this.rs485.parity = (byte & 0x30) >> 4;
-            this.rs485.stopBits = (byte & 0xC0) >> 6;
-            this.rs485.address = ret.buffer.readUInt8(4);
+            let port = this.unpackRS485Port(ret.buffer);
+            this.rs485.baud = port.baud;
+            this.rs485.mode = port.mode;
+            this.rs485.parity = port.parity;
+            this.rs485.stopBits = port.stopBits;
+            this.rs485.address = port.address;
+            //this.rs485.baud = ret.buffer.readUInt16LE(0) + (ret.buffer.readUInt8(2) << 24);
+            //let byte = ret.buffer.readUInt8(3);
+            //this.rs485.mode = byte & 0x0F;
+            //this.rs485.parity = (byte & 0x30) >> 4;
+            //this.rs485.stopBits = (byte & 0xC0) >> 6;
+            //this.rs485.address = ret.buffer.readUInt8(4);
         } catch (err) { logger.error(`${this.device.name} error getting RS485 port settings: ${err.message}`); }
     }
     protected async setRS485Port(port) {
@@ -181,6 +224,7 @@ export class SequentIO extends i2cDeviceBase {
             // Now we have to put together a buffer.  Just use brute force packing no need for a library.
             let buffer = this.packRS485Port(p);
             if (!this.i2c.isMock) await this.i2c.writeI2cBlock(this.device.address, this.regs.rs485Settings, 5, buffer);
+            else console.log(buffer);
             this.rs485.mode = p.mode;
             this.rs485.baud = p.baud;
             this.rs485.stopBits = p.stopBits;
@@ -207,6 +251,13 @@ export class SequentIO extends i2cDeviceBase {
     protected async getCpuTemp() {
         try {
             this.info.cpuTemp = (this.i2c.isMock) ? Math.round(19.0 + Math.random()) : await this.i2c.readByte(this.device.address, this.regs.cpuTemp);
+
+            if(typeof(this.info.cpuTemp) === 'undefined' || this.info.cpuTemp <= 0) {
+                if (fs.existsSync('/sys/class/thermal/thermal_zone0/temp')) {
+                    let buffer = fs.readFileSync('/sys/class/thermal/thermal_zone0/temp');
+                    this.info.cpuTemp = (parseInt(buffer.toString().trim(), 10) / 1000);
+                }
+            }
         } catch (err) { logger.error(`${this.device.name} error getting cpu temp: ${err.message}`); }
     }
     protected async getSourceVolts() {
@@ -442,6 +493,8 @@ export class SequentMegaIND extends SequentIO {
             this.ensureIOChannels('OUT 4-20', '420OUT', this.out4_20, 4);
             this.ensureIOChannels('IN Digital', 'DIN', this.inDigital, 4);
             this.ensureIOChannels('OUT Open Drain', 'ODOUT', this.outDrain, 4);
+            await this.initOutputs(this.out0_10, this.set0_10Output);
+            await this.initOutputs(this.out4_20, this.set4_20Output);
             if (this.device.isActive) await this.getRS485Port();
             return Promise.resolve(true);
         }
@@ -889,6 +942,8 @@ export class SequentMegaBAS extends SequentIO {
             // Set up all the I/O channels.  We want to create a values data structure for all potential inputs and outputs.
             this.ensureIOChannels('IN 0-10', 'AIN', this.in0_10, 8);
             this.ensureIOChannels('OUT 0-10', 'AOUT', this.out0_10, 4);
+            await this.initOutputs(this.out0_10, this.set0_10Output);
+
             if (this.device.isActive) await this.getRS485Port();
             return Promise.resolve(true);
         }
@@ -998,7 +1053,7 @@ export class SequentMegaBAS extends SequentIO {
         try {
             this.suspendPolling = true;
             if (typeof opts.name !== 'undefined' && this.device.name !== opts.name) this.options.name = this.device.name = opts.name;
-            if (typeof opts.rs485 !== 'undefined' && this.checkDiff(this.rs485, opts.rs485)) this.setRS485Port(opts.rs485);
+            if (typeof opts.rs485 !== 'undefined' && this.checkDiff(this.rs485, opts.rs485)) await this.setRS485Port(opts.rs485);
             return Promise.resolve(this.options);
         }
         catch (err) { this.logError(err); Promise.reject(err); }

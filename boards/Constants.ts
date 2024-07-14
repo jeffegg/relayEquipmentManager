@@ -52,7 +52,8 @@ export class valueMaps {
     public controllerTypes: valueMap = new valueMap([
         [1, { name: 'raspi', desc: 'Raspberry Pi', pinouts:'raspi.json', spi0:true, spi1:true, i2c:true }],
         [2, { name: 'opi', desc: 'Orange Pi', pinouts:'orangepi.json', spi0: true, spi1:true, i2c:true }],
-        [3, { name: 'beagle', desc: 'Beagle Bone Black', pinouts: 'beaglebone.json', spi0: true, spi1: false, i2c: true }]
+        [3, { name: 'beagle', desc: 'Beagle Bone Black', pinouts: 'beaglebone.json', spi0: true, spi1: false, i2c: true }],
+        [4, { name: 'raspi-4b-bookworm', desc: 'Raspberry Pi 4B Bookworm OS', pinouts:'raspi-4b-bookworm.json', spi0:true, spi1:true, i2c:true }],
     ]);
     public pinDirections: valueMap = new valueMap([
         [0, { name: 'input', desc: 'Input', gpio:'in' }],
@@ -230,6 +231,11 @@ export class Utils {
             shart: (ref: number, temp: number, resistance: number, beta: number, units: string): number => {
                 let rtemp = this.convert.temperature.convertUnits(temp, 'c', 'k');
                 let tK = (beta * rtemp) / (beta + (rtemp * Math.log(resistance / ref)));
+                return this.convert.temperature.convertUnits(tK, 'k', units);
+            },
+            shart3: (resistance: number, sA: number, sB: number, sC: number, units:string): number => {
+                let rlog = Math.log(resistance);
+                let tK = 1 / (sA + sB * rlog + sC * rlog * rlog * rlog);
                 return this.convert.temperature.convertUnits(tK, 'k', units);
             },
             convertUnits: (val: number, from: string, to: string) => {
